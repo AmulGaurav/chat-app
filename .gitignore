@@ -1,3 +1,9 @@
-node_modules
-dist
+node_modules/
+dist/
+build/
+
+# typescript-build
+*.tsbuildinfo
+
+# lock-file
 package-lock.json
