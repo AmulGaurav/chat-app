@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import "./App.css";
+import { Input } from "@/components/ui/input";
+import Navbar from "./components/Navbar";
 
 function App() {
   const [messages, setMessages] = useState<string[]>([
@@ -56,18 +58,26 @@ function App() {
   };
 
   return (
-    <div className="h-screen bg-black p-4">
-      <div className="h-[90vh]">
+    <div className="h-screen p-4">
+      <Navbar />
+
+      <div className="">
         {messages.map((message, index) => (
-          <div key={index} className="bg-white my-2">
+          <div key={index} className="my-2">
             {message}
           </div>
         ))}
       </div>
-      <div className="w-full bg-white flex">
-        <input className="flex-1 p-4" ref={messageInputRef} type="text" />
+
+      <div className="flex items-center gap-3">
+        <Input
+          className="w-[90vw]"
+          ref={messageInputRef}
+          type="text"
+          placeholder="Type your message"
+        />
         <button
-          className="bg-purple-600 text-white p-4 rounded-xl cursor-pointer"
+          className="bg-purple-600 text-white px-3 py-2 rounded-xl cursor-pointer"
           onClick={sendMessage}
         >
           Send Message
