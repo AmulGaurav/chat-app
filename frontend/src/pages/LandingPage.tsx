@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { MessageCircleMore } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 function LandingPage() {
   const [messages, setMessages] = useState<string[]>([
@@ -101,9 +102,10 @@ function LandingPage() {
           </CardHeader>
           <CardContent>
             <div>
-              <button className="bg-primary text-primary-foreground px-4 py-2 rounded-[var(--radius-sm)] cursor-pointer">
+              {/* <button className="w-full border border-primary text-primary hover:bg-primary/10 px-4 py-2 rounded-md cursor-pointer">
                 Create New Room
-              </button>
+              </button> */}
+              <Button className="w-full cursor-pointer">Create New Room</Button>
             </div>
             <div></div>
           </CardContent>
