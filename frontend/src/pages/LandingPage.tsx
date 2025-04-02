@@ -7,16 +7,60 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { MessageCircleMore } from "lucide-react";
+import { Copy, LoaderCircle, MessageCircleMore } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 function LandingPage() {
   const [messages, setMessages] = useState<string[]>([
     "hello world",
     "hi there",
   ]);
+  const [roomCode, setRoomCode] = useState<string>("");
+  const [existingCodesSet, setExistingCodesSet] = useState<Set<string>>(
+    new Set()
+  );
+  const [isLoading, setIsLoading] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const messageInputRef = useRef<HTMLInputElement | null>(null);
+
+  function generateRoomCode() {
+    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let roomCode = "";
+    for (let i = 0; i < 6; i++) {
+      roomCode += characters.charAt(
+        Math.floor(Math.random() * characters.length)
+      );
+    }
+    return roomCode;
+  }
+
+  async function createUniqueRoomCode() {
+    setIsLoading(true);
+
+    setTimeout(() => {
+      let newCode;
+      do {
+        newCode = generateRoomCode();
+      } while (existingCodesSet.has(newCode));
+
+      setRoomCode(newCode);
+      setIsLoading(false);
+      toast.success("Room created successfully!");
+      setExistingCodesSet((prevSet) => new Set(prevSet).add(newCode));
+    }, 800);
+  }
+
+  function copyToClipboard(text: string) {
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        toast.success(`Copied text to clipboard: ${text}`);
+      })
+      .catch((error) => {
+        toast.error(`Could not copy text: ${error}`);
+      });
+  }
 
   useEffect(() => {
     const ws = new WebSocket("ws://localhost:8080");
@@ -90,7 +134,7 @@ function LandingPage() {
       </div>
 
       <div className="max-w-2xl mx-auto">
-        <Card className="w-full">
+        <Card className="w-full shadow-2xl">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl flex gap-2 items-center">
               <MessageCircleMore className="w-6 h-6" />
@@ -102,12 +146,48 @@ function LandingPage() {
           </CardHeader>
           <CardContent>
             <div>
-              {/* <button className="w-full border border-primary text-primary hover:bg-primary/10 px-4 py-2 rounded-md cursor-pointer">
-                Create New Room
-              </button> */}
-              <Button className="w-full cursor-pointer">Create New Room</Button>
+              <Button
+                className="w-full text-md font-semibold py-5 cursor-pointer"
+                onClick={createUniqueRoomCode}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <LoaderCircle className="animate-spin" /> Creating...
+                  </>
+                ) : (
+                  "Create New Room"
+                )}
+              </Button>
             </div>
-            <div></div>
+
+            <div className="my-5 space-y-4">
+              <div>
+                <Input className="py-5" placeholder="Enter your name"></Input>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input className="py-5" placeholder="Enter Room Code"></Input>
+                <Button className="py-5 text-md font-semibold">
+                  Join Room
+                </Button>
+              </div>
+            </div>
+
+            {roomCode && (
+              <div className="p-6 bg-muted rounded-xl">
+                <div className="flex justify-center items-center">
+                  <span className="text-xl font-bold">{roomCode}</span>
+                  <Button
+                    className="cursor-pointer"
+                    onClick={() => copyToClipboard(roomCode)}
+                    variant={"ghost"}
+                    size={"icon"}
+                  >
+                    <Copy className="w-3 h-3"></Copy>
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
