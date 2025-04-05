@@ -4,6 +4,3 @@ build/
 
 # typescript-build
 *.tsbuildinfo
-
-# lock-file
-package-lock.json
