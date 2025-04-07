@@ -1,3 +1,4 @@
+import CustomCard from "@/components/CustomCard";
 import { useRoom } from "@/context/RoomContext";
 import { useSocket } from "@/context/SocketContext";
 import { useEffect, useState } from "react";
@@ -65,7 +66,7 @@ function Chat() {
     }
   });
 
-  return <div>Chat Page</div>;
+  return <CustomCard>ls</CustomCard>;
 }
 
 export default Chat;

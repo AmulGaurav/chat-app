@@ -1,18 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Copy, LoaderCircle, MessageCircleMore } from "lucide-react";
+import { Copy, LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useSocket } from "@/context/SocketContext";
 import { useRoom } from "@/context/RoomContext";
 import { useNavigate } from "react-router-dom";
+import CustomCard from "@/components/CustomCard";
 
 function LandingPage() {
   const [messages, setMessages] = useState<string[]>([
@@ -128,75 +122,62 @@ function LandingPage() {
         </button>
       </div>
 
-      <div className="max-w-2xl mx-auto">
-        <Card className="w-full shadow-2xl">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl flex gap-2 items-center">
-              <MessageCircleMore className="w-6 h-6" />
-              <div>Real Time Chat</div>
-            </CardTitle>
-            <CardDescription>
-              temporary room that expires after all users exit
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div>
+      <CustomCard>
+        <div>
+          <Button
+            className="w-full text-md font-semibold py-5 cursor-pointer"
+            onClick={createUniqueRoomCode}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <LoaderCircle className="animate-spin" /> Creating...
+              </>
+            ) : (
+              "Create New Room"
+            )}
+          </Button>
+        </div>
+
+        <div className="my-5 space-y-4">
+          <div>
+            <Input
+              className="py-5"
+              placeholder="Enter your name"
+              onChange={handleUsernameChange}
+            ></Input>
+          </div>
+          <div className="flex items-center gap-2">
+            <Input
+              className="py-5"
+              placeholder="Enter Room Code"
+              onChange={handleRoomIdChange}
+            ></Input>
+            <Button
+              className="py-5 text-md font-semibold cursor-pointer"
+              onClick={handleJoinRoom}
+            >
+              Join Room
+            </Button>
+          </div>
+        </div>
+
+        {roomCode && (
+          <div className="p-6 bg-muted rounded-xl">
+            <div className="flex justify-center items-center">
+              <span className="text-xl font-bold">{roomCode}</span>
               <Button
-                className="w-full text-md font-semibold py-5 cursor-pointer"
-                onClick={createUniqueRoomCode}
-                disabled={isLoading}
+                className="cursor-pointer"
+                onClick={() => copyToClipboard(roomCode)}
+                variant={"ghost"}
+                size={"icon"}
               >
-                {isLoading ? (
-                  <>
-                    <LoaderCircle className="animate-spin" /> Creating...
-                  </>
-                ) : (
-                  "Create New Room"
-                )}
+                <Copy className="w-3 h-3"></Copy>
               </Button>
             </div>
-
-            <div className="my-5 space-y-4">
-              <div>
-                <Input
-                  className="py-5"
-                  placeholder="Enter your name"
-                  onChange={handleUsernameChange}
-                ></Input>
-              </div>
-              <div className="flex items-center gap-2">
-                <Input
-                  className="py-5"
-                  placeholder="Enter Room Code"
-                  onChange={handleRoomIdChange}
-                ></Input>
-                <Button
-                  className="py-5 text-md font-semibold cursor-pointer"
-                  onClick={handleJoinRoom}
-                >
-                  Join Room
-                </Button>
-              </div>
-            </div>
-
-            {roomCode && (
-              <div className="p-6 bg-muted rounded-xl">
-                <div className="flex justify-center items-center">
-                  <span className="text-xl font-bold">{roomCode}</span>
-                  <Button
-                    className="cursor-pointer"
-                    onClick={() => copyToClipboard(roomCode)}
-                    variant={"ghost"}
-                    size={"icon"}
-                  >
-                    <Copy className="w-3 h-3"></Copy>
-                  </Button>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        )}
+      </CustomCard>
     </div>
   );
 }
