@@ -10,7 +10,7 @@ import { ReactNode } from "react";
 
 export default function CustomCard({ children }: { children: ReactNode }) {
   return (
-    <div className="flex justify-center mt-28">
+    <div className="flex justify-center mt-16">
       <Card className="w-full max-w-2xl shadow-2xl">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl flex gap-2 items-center">
