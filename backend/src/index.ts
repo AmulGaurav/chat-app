@@ -29,16 +29,33 @@ const createRoom = (roomId: string) => {
 };
 
 const leaveRoom = (room: RoomInterface, socket: WebSocket) => {
-  console.log(rooms);
-  // rooms.forEach((room, roomId) => {
-  //   if (room.has(socket)) {
-  //     room.delete(socket);
-  //   }
+  room.users.delete(socket);
+  room.userCount--;
 
-  //   if (room.size === 0) rooms.delete(roomId);
-  //   console.log(rooms);
-  // });
+  for (const [roomId, value] of rooms.entries()) {
+    if (value === room) {
+      // If room is empty, remove it
+      if (room.userCount === 0) {
+        rooms.delete(roomId);
+      } else {
+        broadcastUserCount(room);
+      }
+    }
+  }
 };
+
+function broadcastUserCount(room: RoomInterface) {
+  room.users.forEach((s) =>
+    s.send(
+      JSON.stringify({
+        type: "update-user-count",
+        payload: {
+          userCount: room.userCount,
+        },
+      })
+    )
+  );
+}
 
 wss.on("connection", (socket) => {
   socket.on("message", (message: string) => {
@@ -80,12 +97,22 @@ wss.on("connection", (socket) => {
         room.userCount = room?.userCount + 1;
         room.lastActive = Date.now();
 
+        room.users.forEach((s) =>
+          s.send(
+            JSON.stringify({
+              type: "update-user-count",
+              payload: {
+                userCount: room.userCount,
+              },
+            })
+          )
+        );
+
         socket.send(
           JSON.stringify({
             type: "room-joined",
             payload: {
               messages: room.messages,
-              userCount: room.userCount,
             },
           })
         );
@@ -117,23 +144,42 @@ wss.on("connection", (socket) => {
         break;
       }
 
-      // case "leave": {
-      //   const roomId = parsedMessage?.payload?.roomId;
-      //   const room = rooms.get(roomId);
+      case "leave": {
+        const roomId = parsedMessage?.payload?.roomId;
+        const room = rooms.get(roomId);
 
-      //   if (room) {
-      //     leaveRoom(room, socket);
-      //   }
-      // }
+        if (!room) {
+          socket.send(
+            JSON.stringify({
+              type: "room-not-found",
+              message: "Room not found",
+            })
+          );
+          return;
+        }
+
+        if (room.users.has(socket)) {
+          leaveRoom(room, socket);
+        }
+      }
     }
-  });
 
-  // setInterval(() => {
-  //   rooms.forEach((room, roomId) => {
-  //     console.log(room);
-  //     console.log(roomId + "\n");
-  //   });
-  // }, 1000);
+    socket.on("close", () => {
+      rooms.forEach((room, roomId) => {
+        if (room.users.has(socket)) {
+          room.users.delete(socket);
+          room.userCount--;
+
+          // If room is empty, remove it
+          if (room.userCount === 0) {
+            rooms.delete(roomId);
+          } else {
+            broadcastUserCount(room);
+          }
+        }
+      });
+    });
+  });
 });
 
 // Message format:
