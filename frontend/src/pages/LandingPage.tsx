@@ -11,20 +11,27 @@ import { Copy, LoaderCircle, MessageCircleMore } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useSocket } from "@/context/SocketContext";
+import { useRoom } from "@/context/RoomContext";
+import { useNavigate } from "react-router-dom";
 
 function LandingPage() {
   const [messages, setMessages] = useState<string[]>([
     "hello world",
     "hi there",
   ]);
-  const [roomCode, setRoomCode] = useState<string>("");
+  const socket = useSocket();
+  const roomContext = useRoom();
+  const roomId = roomContext?.roomId;
+  const setRoomId = roomContext?.setRoomId;
+  const username = roomContext?.username;
+  const setUsername = roomContext?.setUsername;
   const [isLoading, setIsLoading] = useState(false);
-  const socketContext = useSocket();
-  const socket = socketContext?.socket;
+  const [roomCode, setRoomCode] = useState<string>("");
   const wsRef = useRef<WebSocket | null>(null);
   const messageInputRef = useRef<HTMLInputElement | null>(null);
+  const navigate = useNavigate();
 
-  async function createUniqueRoomCode() {
+  function createUniqueRoomCode() {
     if (socket) {
       setIsLoading(true);
 
@@ -33,10 +40,6 @@ function LandingPage() {
           type: "create-room",
         })
       );
-
-      // setRoomCode(newCode);
-      // setIsLoading(false);
-      // toast.success("Room created successfully!");
     }
   }
 
@@ -49,6 +52,19 @@ function LandingPage() {
       .catch((error) => {
         toast.error(`Could not copy text: ${error}`);
       });
+  }
+
+  function handleUsernameChange(e: { target: { value: string } }) {
+    if (setUsername) setUsername(e.target.value);
+  }
+
+  function handleRoomIdChange(e: { target: { value: string } }) {
+    if (setRoomId) setRoomId(e.target.value);
+  }
+
+  function handleJoinRoom() {
+    if (username?.trim() && roomId?.trim()) navigate("/chat");
+    else toast.error("Please fill all the inputs correctly!");
   }
 
   const sendMessage = () => {
@@ -74,12 +90,14 @@ function LandingPage() {
 
   useEffect(() => {
     if (socket) {
-      socket.onmessage = (event) => {
+      socket.onmessage = (event: { data: string }) => {
         const data = JSON.parse(event.data);
         console.log("data: ", data);
 
         if (data.type === "room-created") {
+          setRoomCode(data?.payload?.roomCode);
           setIsLoading(false);
+          toast.success("Room created successfully!");
         }
       };
     }
@@ -140,11 +158,22 @@ function LandingPage() {
 
             <div className="my-5 space-y-4">
               <div>
-                <Input className="py-5" placeholder="Enter your name"></Input>
+                <Input
+                  className="py-5"
+                  placeholder="Enter your name"
+                  onChange={handleUsernameChange}
+                ></Input>
               </div>
               <div className="flex items-center gap-2">
-                <Input className="py-5" placeholder="Enter Room Code"></Input>
-                <Button className="py-5 text-md font-semibold cursor-pointer">
+                <Input
+                  className="py-5"
+                  placeholder="Enter Room Code"
+                  onChange={handleRoomIdChange}
+                ></Input>
+                <Button
+                  className="py-5 text-md font-semibold cursor-pointer"
+                  onClick={handleJoinRoom}
+                >
                   Join Room
                 </Button>
               </div>
