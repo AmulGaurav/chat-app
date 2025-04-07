@@ -6,10 +6,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { MessageCircleMore } from "lucide-react";
+import { ReactNode } from "react";
 
-export default function CustomCard({ children }) {
+export default function CustomCard({ children }: { children: ReactNode }) {
   return (
-    <div className="flex justify-center">
+    <div className="flex justify-center mt-28">
       <Card className="w-full max-w-2xl shadow-2xl">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl flex gap-2 items-center">
