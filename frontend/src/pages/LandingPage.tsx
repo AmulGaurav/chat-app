@@ -10,6 +10,7 @@ import {
 import { Copy, LoaderCircle, MessageCircleMore } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useSocket } from "@/context/SocketContext";
 
 function LandingPage() {
   const [messages, setMessages] = useState<string[]>([
@@ -17,38 +18,26 @@ function LandingPage() {
     "hi there",
   ]);
   const [roomCode, setRoomCode] = useState<string>("");
-  const [existingCodesSet, setExistingCodesSet] = useState<Set<string>>(
-    new Set()
-  );
   const [isLoading, setIsLoading] = useState(false);
+  const socketContext = useSocket();
+  const socket = socketContext?.socket;
   const wsRef = useRef<WebSocket | null>(null);
   const messageInputRef = useRef<HTMLInputElement | null>(null);
 
-  function generateRoomCode() {
-    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let roomCode = "";
-    for (let i = 0; i < 6; i++) {
-      roomCode += characters.charAt(
-        Math.floor(Math.random() * characters.length)
-      );
-    }
-    return roomCode;
-  }
-
   async function createUniqueRoomCode() {
-    setIsLoading(true);
+    if (socket) {
+      setIsLoading(true);
 
-    setTimeout(() => {
-      let newCode;
-      do {
-        newCode = generateRoomCode();
-      } while (existingCodesSet.has(newCode));
+      socket?.send(
+        JSON.stringify({
+          type: "create-room",
+        })
+      );
 
-      setRoomCode(newCode);
-      setIsLoading(false);
-      toast.success("Room created successfully!");
-      setExistingCodesSet((prevSet) => new Set(prevSet).add(newCode));
-    }, 800);
+      // setRoomCode(newCode);
+      // setIsLoading(false);
+      // toast.success("Room created successfully!");
+    }
   }
 
   function copyToClipboard(text: string) {
@@ -61,31 +50,6 @@ function LandingPage() {
         toast.error(`Could not copy text: ${error}`);
       });
   }
-
-  useEffect(() => {
-    const ws = new WebSocket("ws://localhost:8080");
-
-    ws.onmessage = (e) => {
-      setMessages((prev) => [...prev, e.data]);
-    };
-
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      ws.send(
-        JSON.stringify({
-          type: "join",
-          payload: {
-            roomId: "red",
-          },
-        })
-      );
-    };
-
-    return () => {
-      ws.close();
-    };
-  }, []);
 
   const sendMessage = () => {
     if (!messageInputRef.current || !wsRef.current) return;
@@ -107,6 +71,19 @@ function LandingPage() {
 
     messageInputRef.current.value = "";
   };
+
+  useEffect(() => {
+    if (socket) {
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        console.log("data: ", data);
+
+        if (data.type === "room-created") {
+          setIsLoading(false);
+        }
+      };
+    }
+  });
 
   return (
     <div className="p-4">
@@ -167,7 +144,7 @@ function LandingPage() {
               </div>
               <div className="flex items-center gap-2">
                 <Input className="py-5" placeholder="Enter Room Code"></Input>
-                <Button className="py-5 text-md font-semibold">
+                <Button className="py-5 text-md font-semibold cursor-pointer">
                   Join Room
                 </Button>
               </div>

@@ -11,6 +11,10 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
 
     setSocket(ws);
 
+    ws.onopen = () => {
+      console.log("WebSocket connection opened!");
+    };
+
     ws.onclose = () => {
       console.log("WebSocket connection closed!");
     };
@@ -21,8 +25,6 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   return (
-    <SocketContext.Provider value={{ socket, setSocket }}>
-      {children}
-    </SocketContext.Provider>
+    <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>
   );
 };
