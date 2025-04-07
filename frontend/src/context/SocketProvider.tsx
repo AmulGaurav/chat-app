@@ -15,6 +15,10 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
       console.log("WebSocket connection opened!");
     };
 
+    ws.onmessage = (event) => {
+      console.log(event.data);
+    };
+
     ws.onclose = () => {
       console.log("WebSocket connection closed!");
     };
