@@ -108,7 +108,7 @@ wss.on("connection", (socket) => {
 
         socket.send(
           JSON.stringify({
-            type: "room-joined",
+            type: "user-joined",
             payload: {
               messages: room.messages,
             },
