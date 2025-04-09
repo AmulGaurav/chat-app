@@ -18,20 +18,7 @@ function Chat() {
   const username = roomContext?.username;
   const setUsername = roomContext?.setUsername;
   const navigate = useNavigate();
-  const [messages, setMessages] = useState<IMessage[]>([
-    {
-      isCurrentUser: true,
-      content: "hello world",
-      sender: "username",
-      timestamp: new Date(),
-    },
-    {
-      isCurrentUser: false,
-      content: "hello there",
-      sender: "username",
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<IMessage[]>([]);
   const [message, setMessage] = useState("");
   const [userCount, setUserCount] = useState<number>(1);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -57,11 +44,43 @@ function Chat() {
 
   function sendMessage(e: FormEvent) {
     e.preventDefault();
+
+    if (!username) {
+      toast.error("Please enter your username!");
+      navigate("/");
+      return;
+    }
+
+    const trimmedMessage = message.trim();
+    setMessage("");
+
+    if (!trimmedMessage) return;
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        isCurrentUser: true,
+        content: trimmedMessage,
+        sender: username,
+        timestamp: new Date(),
+      },
+    ]);
+
+    socket?.send(
+      JSON.stringify({
+        type: "chat",
+        payload: {
+          message: trimmedMessage,
+          roomId,
+          username,
+        },
+      })
+    );
   }
 
   useEffect(() => {
     if (!roomId) navigate("/");
-  }, [roomId]);
+  }, []);
 
   useEffect(() => {
     if (socket) {
@@ -87,28 +106,45 @@ function Chat() {
         const data = JSON.parse(event.data);
         console.log("data: ", data);
 
-        if (data.type === "room-not-found") {
-          if (setRoomId) setRoomId("");
-          if (setUsername) setUsername("");
+        switch (data.type) {
+          case "room-not-found":
+            if (setRoomId) setRoomId("");
+            if (setUsername) setUsername("");
 
-          toast(data.message);
-          navigate("/");
-        } else if (data.type === "update-user-count") {
-          setUserCount(data?.payload?.userCount);
-        } else if (data.type === "room-joined") {
-          const formattedMessages: IMessage[] = data?.payload?.messages?.map(
-            (msg: { content: string; sender: string; timestamp: Date }) => ({
-              ...msg,
-              isCurrentUser: false,
-            })
-          );
+            toast(data.message);
+            navigate("/");
+            break;
 
-          console.log(
-            "messages: ",
-            JSON.stringify(data?.payload?.messages, null, 2)
-          );
+          case "update-user-count":
+            setUserCount(data?.payload?.userCount);
+            break;
 
-          setMessages([...messages, ...formattedMessages]);
+          case "user-joined": {
+            const formattedMessages: IMessage[] = data?.payload?.messages?.map(
+              (msg: { content: string; sender: string; timestamp: Date }) => ({
+                ...msg,
+                isCurrentUser: false,
+              })
+            );
+
+            console.log(
+              "messages: ",
+              JSON.stringify(data?.payload?.messages, null, 2)
+            );
+
+            setMessages(formattedMessages);
+            break;
+          }
+
+          case "chat": {
+            setMessages((prev) => [
+              ...prev,
+              {
+                ...data.payload.message,
+                isCurrentUser: false,
+              },
+            ]);
+          }
         }
       };
     }
@@ -130,13 +166,20 @@ function Chat() {
                 <Copy className="w-3 h-3"></Copy>
               </Button>
             </div>
-            <div>Users: {userCount}</div>
+            <div>
+              <div>
+                Username: <span className="text-red-500">{username}</span>
+              </div>
+              <div>
+                Users: <span className="text-red-500">{userCount}</span>
+              </div>
+            </div>
           </div>
         )}
 
-        <div className="h-[430px] border rounded-lg p-4">
+        <div className="h-[430px] overflow-y-auto border rounded-lg p-4 space-y-1">
           <MessageGroup messages={messages} />
-          <div ref={messagesEndRef}></div>
+          <div ref={messagesEndRef} />
         </div>
 
         <form onSubmit={sendMessage} className="flex gap-2">
