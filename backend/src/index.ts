@@ -91,8 +91,6 @@ wss.on("connection", (socket) => {
           return;
         }
 
-        const username = parsedMessage?.payload?.username;
-
         room?.users.add(socket);
         room.userCount = room?.userCount + 1;
         room.lastActive = Date.now();
@@ -116,8 +114,6 @@ wss.on("connection", (socket) => {
             },
           })
         );
-
-        console.log("user connected: ", room);
         break;
       }
 
@@ -126,7 +122,12 @@ wss.on("connection", (socket) => {
         const room = rooms.get(roomId);
 
         if (!room) {
-          socket.emit("error", "Room not found");
+          socket.send(
+            JSON.stringify({
+              type: "room-not-found",
+              message: "Room not found",
+            })
+          );
           return;
         }
 
@@ -139,7 +140,15 @@ wss.on("connection", (socket) => {
         room.messages.push(newMessage);
 
         room.users.forEach((s) => {
-          if (s !== socket) s.send(JSON.stringify(newMessage));
+          if (s !== socket)
+            s.send(
+              JSON.stringify({
+                type: "chat",
+                payload: {
+                  message: newMessage,
+                },
+              })
+            );
         });
         break;
       }
