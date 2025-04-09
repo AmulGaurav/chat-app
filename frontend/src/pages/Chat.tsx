@@ -1,19 +1,14 @@
 import CustomCard from "@/components/CustomCard";
+import MessageGroup from "@/components/MessageGroup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRoom } from "@/context/RoomContext";
 import { useSocket } from "@/context/SocketContext";
+import { IMessage } from "@/types/chat";
 import { Copy } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-
-interface IMessage {
-  isCurrentUser: boolean;
-  content: string;
-  sender: string;
-  timestamp: Date;
-}
 
 function Chat() {
   const socket = useSocket();
@@ -37,7 +32,13 @@ function Chat() {
       timestamp: new Date(),
     },
   ]);
+  const [message, setMessage] = useState("");
   const [userCount, setUserCount] = useState<number>(1);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   function copyToClipboard(text: string) {
     navigator.clipboard
@@ -48,6 +49,14 @@ function Chat() {
       .catch((error) => {
         toast.error(`Could not copy text: ${error}`);
       });
+  }
+
+  function handleMessageChange(e: ChangeEvent<HTMLInputElement>) {
+    setMessage(e.target.value);
+  }
+
+  function sendMessage(e: FormEvent) {
+    e.preventDefault();
   }
 
   useEffect(() => {
@@ -68,9 +77,9 @@ function Chat() {
     }
   }, []);
 
-  const MessageGroup = () => {
-    return <div></div>;
-  };
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   useEffect(() => {
     if (socket) {
@@ -87,14 +96,19 @@ function Chat() {
         } else if (data.type === "update-user-count") {
           setUserCount(data?.payload?.userCount);
         } else if (data.type === "room-joined") {
-          const formattedMessages: IMessage[] = data?.messages?.map(
+          const formattedMessages: IMessage[] = data?.payload?.messages?.map(
             (msg: { content: string; sender: string; timestamp: Date }) => ({
               ...msg,
               isCurrentUser: false,
             })
           );
 
-          setMessages(formattedMessages);
+          console.log(
+            "messages: ",
+            JSON.stringify(data?.payload?.messages, null, 2)
+          );
+
+          setMessages([...messages, ...formattedMessages]);
         }
       };
     }
@@ -120,10 +134,18 @@ function Chat() {
           </div>
         )}
 
-        <div className="h-[430px] border rounded-lg p-4"></div>
+        <div className="h-[430px] border rounded-lg p-4">
+          <MessageGroup messages={messages} />
+          <div ref={messagesEndRef}></div>
+        </div>
 
-        <form action="" className="flex gap-2">
-          <Input className="py-5" placeholder="Type a message..." />
+        <form onSubmit={sendMessage} className="flex gap-2">
+          <Input
+            className="py-5"
+            placeholder="Type a message..."
+            value={message}
+            onChange={handleMessageChange}
+          />
           <Button
             className="cursor-pointer px-8 font-semibold"
             size={"lg"}
