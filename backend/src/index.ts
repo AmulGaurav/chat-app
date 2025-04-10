@@ -65,6 +65,7 @@ wss.on("connection", (socket) => {
 
     switch (parsedMessage.type) {
       case "create-room":
+        // create new roomCode
         const roomCode = randomBytes(3).toString("hex").toUpperCase();
         createRoom(roomCode);
         socket.send(
@@ -181,6 +182,7 @@ wss.on("connection", (socket) => {
 
           // If room is empty, remove it
           if (room.userCount === 0) {
+            console.log("Deleting empty room: ", roomId);
             rooms.delete(roomId);
           } else {
             broadcastUserCount(room);
@@ -190,6 +192,17 @@ wss.on("connection", (socket) => {
     });
   });
 });
+
+setInterval(() => {
+  const currTime = Date.now();
+
+  rooms.forEach((room, roomId) => {
+    if (room.userCount === 0 && currTime - room.lastActive > 3600000) {
+      console.log("Cleaning up inactive room: ", roomId);
+      rooms.delete(roomId);
+    }
+  });
+}, 3600000);
 
 // Message format:
 
