@@ -4,9 +4,11 @@ import { SocketContext } from "./SocketContext";
 export const SocketProvider = ({ children }: { children: ReactNode }) => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
 
+  console.log(import.meta.env.VITE_WEBSOCKET_SERVER);
+
   useEffect(() => {
     const ws = new WebSocket(
-      import.meta.env.WEBSOCKET_SERVER || "ws://localhost:8080"
+      import.meta.env.VITE_WEBSOCKET_SERVER || "ws://localhost:8080"
     );
 
     setSocket(ws);
