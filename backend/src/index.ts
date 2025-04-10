@@ -191,11 +191,10 @@ wss.on("connection", (socket) => {
   });
 });
 
+// clean-up rooms that are inactive for more than 1 hour
 setInterval(() => {
-  const currTime = Date.now();
-
   rooms.forEach((room, roomId) => {
-    if (room.userCount === 0 && currTime - room.lastActive > 3600000) {
+    if (room.userCount === 0 && Date.now() - room.lastActive > 3600000) {
       console.log("Cleaning up inactive room: ", roomId);
       rooms.delete(roomId);
     }
