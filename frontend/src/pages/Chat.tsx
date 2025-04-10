@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useRoom } from "@/context/RoomContext";
 import { useSocket } from "@/context/SocketContext";
 import { IMessage } from "@/types/chat";
+import { playSound } from "@/utils/playSound";
 import { Copy } from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -54,6 +55,8 @@ function Chat() {
 
     if (!trimmedMessage) return;
 
+    playSound("/sounds/send.mp3");
+
     setMessages((prev) => [
       ...prev,
       {
@@ -77,10 +80,6 @@ function Chat() {
   }
 
   useEffect(() => {
-    if (!roomId) navigate("/");
-  }, []);
-
-  useEffect(() => {
     if (socket) {
       socket.send(
         JSON.stringify({
@@ -99,53 +98,59 @@ function Chat() {
   }, [messages]);
 
   useEffect(() => {
-    if (socket) {
-      socket.onmessage = (event: { data: string }) => {
-        const data = JSON.parse(event.data);
-        console.log("data: ", data);
-
-        switch (data.type) {
-          case "room-not-found":
-            if (setRoomId) setRoomId("");
-            if (setUsername) setUsername("");
-
-            toast(data.message);
-            navigate("/");
-            break;
-
-          case "update-user-count":
-            setUserCount(data?.payload?.userCount);
-            break;
-
-          case "user-joined": {
-            const formattedMessages: IMessage[] = data?.payload?.messages?.map(
-              (msg: { content: string; sender: string; timestamp: Date }) => ({
-                ...msg,
-                isCurrentUser: false,
-              })
-            );
-
-            console.log(
-              "messages: ",
-              JSON.stringify(data?.payload?.messages, null, 2)
-            );
-
-            setMessages(formattedMessages);
-            break;
-          }
-
-          case "chat": {
-            setMessages((prev) => [
-              ...prev,
-              {
-                ...data.payload.message,
-                isCurrentUser: false,
-              },
-            ]);
-          }
-        }
-      };
+    if (!socket) {
+      toast("Socket disconnected!");
+      if (setRoomId) setRoomId("");
+      if (setUsername) setUsername("");
+      navigate("/");
+      return;
     }
+
+    socket.onmessage = (event: { data: string }) => {
+      const data = JSON.parse(event.data);
+
+      switch (data.type) {
+        case "room-not-found":
+          if (setRoomId) setRoomId("");
+          if (setUsername) setUsername("");
+
+          toast(data.message);
+          navigate("/");
+          break;
+
+        case "update-user-count":
+          setUserCount(data?.payload?.userCount);
+          break;
+
+        case "user-joined": {
+          const formattedMessages: IMessage[] = data?.payload?.messages?.map(
+            (msg: { content: string; sender: string; timestamp: Date }) => ({
+              ...msg,
+              isCurrentUser: false,
+            })
+          );
+
+          setMessages(formattedMessages);
+          break;
+        }
+
+        case "chat": {
+          playSound("sounds/receive.mp3");
+
+          setMessages((prev) => [
+            ...prev,
+            {
+              ...data.payload.message,
+              isCurrentUser: false,
+            },
+          ]);
+        }
+      }
+    };
+
+    return () => {
+      socket.onmessage = null;
+    };
   });
 
   return (
