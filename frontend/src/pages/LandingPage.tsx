@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Copy, LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,10 +9,6 @@ import { useNavigate } from "react-router-dom";
 import CustomCard from "@/components/CustomCard";
 
 function LandingPage() {
-  const [messages, setMessages] = useState<string[]>([
-    "hello world",
-    "hi there",
-  ]);
   const socket = useSocket();
   const roomContext = useRoom();
   const roomId = roomContext?.roomId;
@@ -21,8 +17,6 @@ function LandingPage() {
   const setUsername = roomContext?.setUsername;
   const [isLoading, setIsLoading] = useState(false);
   const [roomCode, setRoomCode] = useState<string>("");
-  const wsRef = useRef<WebSocket | null>(null);
-  const messageInputRef = useRef<HTMLInputElement | null>(null);
   const navigate = useNavigate();
 
   function createUniqueRoomCode() {
@@ -61,27 +55,6 @@ function LandingPage() {
     else toast.error("Please fill all the inputs correctly!");
   }
 
-  const sendMessage = () => {
-    if (!messageInputRef.current || !wsRef.current) return;
-
-    const message = messageInputRef.current.value.trim();
-
-    if (!message) return;
-
-    setMessages((prev) => [...prev, message]);
-
-    wsRef.current.send(
-      JSON.stringify({
-        type: "chat",
-        payload: {
-          message,
-        },
-      })
-    );
-
-    messageInputRef.current.value = "";
-  };
-
   useEffect(() => {
     if (socket) {
       socket.onmessage = (event: { data: string }) => {
@@ -98,30 +71,7 @@ function LandingPage() {
   });
 
   return (
-    <div className="p-4">
-      <div className="">
-        {messages.map((message, index) => (
-          <div key={index} className="my-2">
-            {message}
-          </div>
-        ))}
-      </div>
-
-      <div className="flex items-center gap-3">
-        <Input
-          className="w-[90vw]"
-          ref={messageInputRef}
-          type="text"
-          placeholder="Type your message"
-        />
-        <button
-          className="bg-purple-600 text-white px-3 py-2 rounded-xl cursor-pointer"
-          onClick={sendMessage}
-        >
-          Send Message
-        </button>
-      </div>
-
+    <div className="mt-44">
       <CustomCard>
         <div>
           <Button

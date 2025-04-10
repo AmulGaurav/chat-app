@@ -6,7 +6,7 @@ import { useRoom } from "@/context/RoomContext";
 import { useSocket } from "@/context/SocketContext";
 import { IMessage } from "@/types/chat";
 import { Copy } from "lucide-react";
-import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -18,10 +18,10 @@ function Chat() {
   const username = roomContext?.username;
   const setUsername = roomContext?.setUsername;
   const navigate = useNavigate();
-  const [messages, setMessages] = useState<IMessage[]>([]);
-  const [message, setMessage] = useState("");
   const [userCount, setUserCount] = useState<number>(1);
+  const messageRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [messages, setMessages] = useState<IMessage[]>([]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -38,10 +38,6 @@ function Chat() {
       });
   }
 
-  function handleMessageChange(e: ChangeEvent<HTMLInputElement>) {
-    setMessage(e.target.value);
-  }
-
   function sendMessage(e: FormEvent) {
     e.preventDefault();
 
@@ -51,8 +47,10 @@ function Chat() {
       return;
     }
 
-    const trimmedMessage = message.trim();
-    setMessage("");
+    if (!messageRef.current) return;
+
+    const trimmedMessage = messageRef.current.value.trim();
+    messageRef.current.value = "";
 
     if (!trimmedMessage) return;
 
@@ -186,8 +184,7 @@ function Chat() {
           <Input
             className="py-5"
             placeholder="Type a message..."
-            value={message}
-            onChange={handleMessageChange}
+            ref={messageRef}
           />
           <Button
             className="cursor-pointer px-8 font-semibold"
