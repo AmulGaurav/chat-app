@@ -6,9 +6,6 @@ export default function MessageGroup({ messages }: { messages: IMessage[] }) {
       {messages.map((msg, index) => {
         const firstInGroup =
           index === 0 || messages[index - 1].sender !== msg.sender;
-        console.log(msg);
-        console.log(index);
-        console.log("\n");
 
         return (
           <div
