@@ -56,18 +56,23 @@ function LandingPage() {
   }
 
   useEffect(() => {
-    if (socket) {
-      socket.onmessage = (event: { data: string }) => {
-        const data = JSON.parse(event.data);
-        console.log("data: ", data);
-
-        if (data.type === "room-created") {
-          setRoomCode(data?.payload?.roomCode);
-          setIsLoading(false);
-          toast.success("Room created successfully!");
-        }
-      };
+    if (!socket) {
+      return;
     }
+
+    socket.onmessage = (event: { data: string }) => {
+      const data = JSON.parse(event.data);
+
+      if (data.type === "room-created") {
+        setRoomCode(data?.payload?.roomCode);
+        setIsLoading(false);
+        toast.success("Room created successfully!");
+      }
+    };
+
+    return () => {
+      socket.onmessage = null;
+    };
   });
 
   return (
