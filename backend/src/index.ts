@@ -61,8 +61,6 @@ wss.on("connection", (socket) => {
   socket.on("message", (message: string) => {
     const parsedMessage = JSON.parse(message);
 
-    console.log(parsedMessage);
-
     switch (parsedMessage.type) {
       case "create-room":
         // create new roomCode
