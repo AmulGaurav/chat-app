@@ -16,7 +16,6 @@ interface RoomInterface {
 
 const wss = new WebSocketServer({ port: 8080 });
 
-let userCount = 0;
 const rooms = new Map<string, RoomInterface>();
 
 const createRoom = (roomId: string) => {
