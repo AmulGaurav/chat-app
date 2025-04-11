@@ -1,51 +1,58 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { randomBytes } from "crypto";
 
-interface Message {
+interface IMessage {
   content: string;
   sender: string;
   timestamp: Date;
+  userId: number;
 }
 
-interface RoomInterface {
-  users: Set<WebSocket>;
-  messages: Message[];
+interface IUsers {
+  userId: number;
+  socket: WebSocket;
+}
+
+interface IRoom {
+  users: Set<IUsers>;
+  messages: IMessage[];
   userCount: number;
   lastActive: number;
 }
 
 const wss = new WebSocketServer({ port: 8080 });
 
-const rooms = new Map<string, RoomInterface>();
+let userId = 0;
+const rooms = new Map<string, IRoom>();
 
 const createRoom = (roomId: string) => {
   rooms.set(roomId, {
-    users: new Set<WebSocket>(),
+    users: new Set<IUsers>(),
     messages: [],
     userCount: 0,
     lastActive: Date.now(),
   });
 };
 
-const leaveRoom = (room: RoomInterface, socket: WebSocket) => {
-  room.users.delete(socket);
-  room.userCount--;
+const leaveRoom = (roomId: string, socket: WebSocket, userId: number) => {
+  const room = rooms.get(roomId);
 
-  for (const [roomId, value] of rooms.entries()) {
-    if (value === room) {
-      // If room is empty, remove it
-      if (room.userCount === 0) {
-        rooms.delete(roomId);
-      } else {
-        broadcastUserCount(room);
-      }
-    }
+  if (!room) return;
+
+  const userToDelete = getUserBySocket(room.users, socket);
+
+  if (userToDelete) {
+    room.users.delete(userToDelete);
+    room.userCount--;
+
+    if (room.userCount === 0) rooms.delete(roomId);
+    else broadcastUserCount(room);
   }
 };
 
-function broadcastUserCount(room: RoomInterface) {
+function broadcastUserCount(room: IRoom) {
   room.users.forEach((s) =>
-    s.send(
+    s.socket.send(
       JSON.stringify({
         type: "update-user-count",
         payload: {
@@ -54,6 +61,10 @@ function broadcastUserCount(room: RoomInterface) {
       })
     )
   );
+}
+
+function getUserBySocket(users: Set<IUsers>, socket: WebSocket) {
+  return [...users].find((u) => u.socket === socket);
 }
 
 wss.on("connection", (socket) => {
@@ -89,12 +100,17 @@ wss.on("connection", (socket) => {
           return;
         }
 
-        room?.users.add(socket);
+        const newUserId = userId;
+        room?.users.add({
+          userId: newUserId,
+          socket,
+        });
+        userId++;
         room.userCount = room?.userCount + 1;
         room.lastActive = Date.now();
 
         room.users.forEach((s) =>
-          s.send(
+          s.socket.send(
             JSON.stringify({
               type: "update-user-count",
               payload: {
@@ -109,6 +125,7 @@ wss.on("connection", (socket) => {
             type: "user-joined",
             payload: {
               messages: room.messages,
+              userId: newUserId,
             },
           })
         );
@@ -129,17 +146,18 @@ wss.on("connection", (socket) => {
           return;
         }
 
-        const newMessage: Message = {
+        const newMessage: IMessage = {
           content: parsedMessage?.payload?.message,
           sender: parsedMessage?.payload?.username,
           timestamp: new Date(),
+          userId: parsedMessage?.payload?.userId,
         };
         room.lastActive = Date.now();
         room.messages.push(newMessage);
 
         room.users.forEach((s) => {
-          if (s !== socket)
-            s.send(
+          if (s.socket !== socket)
+            s.socket.send(
               JSON.stringify({
                 type: "chat",
                 payload: {
@@ -153,6 +171,7 @@ wss.on("connection", (socket) => {
 
       case "leave": {
         const roomId = parsedMessage?.payload?.roomId;
+        const userId = parsedMessage?.payload?.userId;
         const room = rooms.get(roomId);
 
         if (!room) {
@@ -165,16 +184,21 @@ wss.on("connection", (socket) => {
           return;
         }
 
-        if (room.users.has(socket)) {
-          leaveRoom(room, socket);
+        const userToDelete = getUserBySocket(room.users, socket);
+        if (userToDelete) {
+          if (room.users.has(userToDelete)) leaveRoom(roomId, socket, userId);
         }
       }
     }
+  });
 
-    socket.on("close", () => {
-      rooms.forEach((room, roomId) => {
-        if (room.users.has(socket)) {
-          room.users.delete(socket);
+  socket.on("close", () => {
+    rooms.forEach((room, roomId) => {
+      const userToDelete = getUserBySocket(room.users, socket);
+
+      if (userToDelete) {
+        if (room.users.has(userToDelete)) {
+          room.users.delete(userToDelete);
           room.userCount--;
 
           // If room is empty, remove it
@@ -185,7 +209,7 @@ wss.on("connection", (socket) => {
             broadcastUserCount(room);
           }
         }
-      });
+      }
     });
   });
 });
@@ -200,36 +224,39 @@ setInterval(() => {
   });
 }, 3600000);
 
-// Message format:
+/*
+Message format:
 
-// 1. CREATE-ROOM
-// {
-//   type: "create-room"
-// }
+1. CREATE-ROOM
+{
+  type: "create-room"
+}
 
-// 2. JOIN
-// {
-//   "type": "join",
-//   "payload": {
-//     "roomId": "123456",
-//     "username": "user"
-//   }
-// }
+2. JOIN
+{
+  "type": "join",
+  "payload": {
+    "roomId": "123456",
+    "username": "user"
+  }
+}
 
-// 3. CHAT
-// {
-//   "type": "chat",
-//   "payload": {
-//     "message": "hi there",
-//     "roomId": "123456",
-//     "username": "user"
-//   }
-// }
+3. CHAT
+{
+  "type": "chat",
+  "payload": {
+    "message": "hi there",
+    "roomId": "123456",
+    "username": "user",
+    "userId": 1
+  }
+}
 
-// 4. LEAVE
-// {
-//   "type": "leave",
-//   "payload": {
-//     "roomId": "123456"
-//   }
-// }
+4. LEAVE
+{
+  "type": "leave",
+  "payload": {
+    "roomId": "123456"
+  }
+}
+*/
