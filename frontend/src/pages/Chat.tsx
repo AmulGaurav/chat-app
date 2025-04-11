@@ -23,6 +23,7 @@ function Chat() {
   const messageRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<IMessage[]>([]);
+  const [userId, setUserId] = useState<string>("");
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -60,10 +61,10 @@ function Chat() {
     setMessages((prev) => [
       ...prev,
       {
-        isCurrentUser: true,
         content: trimmedMessage,
         sender: username,
         timestamp: new Date(),
+        userId,
       },
     ]);
 
@@ -74,6 +75,7 @@ function Chat() {
           message: trimmedMessage,
           roomId,
           username,
+          userId,
         },
       })
     );
@@ -131,6 +133,7 @@ function Chat() {
           );
 
           setMessages(formattedMessages);
+          setUserId(data?.payload?.userId);
           break;
         }
 
@@ -181,7 +184,7 @@ function Chat() {
         )}
 
         <div className="h-[430px] overflow-y-auto border rounded-lg p-4 space-y-1">
-          <MessageGroup messages={messages} />
+          <MessageGroup messages={messages} userId={userId} />
           <div ref={messagesEndRef} />
         </div>
 
