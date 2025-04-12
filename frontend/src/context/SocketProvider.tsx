@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
 import { SocketContext } from "./SocketContext";
+import { toast } from "sonner";
 
 export const SocketProvider = ({ children }: { children: ReactNode }) => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
@@ -11,7 +12,11 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
 
     setSocket(ws);
 
+    if (ws.readyState === WebSocket.CONNECTING)
+      toast.info("Connecting to Socket server!");
+
     ws.onopen = () => {
+      toast.success("Socket connected!");
       console.log("WebSocket connection opened!");
     };
 
