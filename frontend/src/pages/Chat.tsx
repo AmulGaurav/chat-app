@@ -6,7 +6,7 @@ import { useRoom } from "@/context/RoomContext";
 import { useSocket } from "@/context/SocketContext";
 import { IMessage } from "@/types/chat";
 import { playSound } from "@/utils/playSound";
-import { Copy } from "lucide-react";
+import { Copy, LoaderCircle } from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -24,6 +24,7 @@ function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<IMessage[]>([]);
   const [userId, setUserId] = useState<string>("");
+  const [loading, setLoading] = useState(true);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -117,6 +118,7 @@ function Chat() {
           if (setUsername) setUsername("");
 
           toast(data.message);
+          setLoading(false);
           navigate("/");
           break;
 
@@ -132,6 +134,7 @@ function Chat() {
             })
           );
 
+          setLoading(false);
           setMessages(formattedMessages);
           setUserId(data?.payload?.userId);
           break;
@@ -158,51 +161,57 @@ function Chat() {
 
   return (
     <CustomCard>
-      <div className="space-y-6">
-        {roomId && (
-          <div className="flex justify-between items-center bg-muted text-muted-foreground text-sm p-3 rounded-lg">
-            <div className="flex items-center gap-2">
-              <div>Room Code: {roomId}</div>
-              <Button
-                className="cursor-pointer"
-                onClick={() => copyToClipboard(roomId)}
-                variant={"ghost"}
-                size={"icon"}
-              >
-                <Copy className="w-3 h-3"></Copy>
-              </Button>
-            </div>
-            <div>
-              <div>
-                Username: <span className="text-red-500">{username}</span>
-              </div>
-              <div>
-                Users: <span className="text-red-500">{userCount}</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="h-[430px] overflow-y-auto border rounded-lg p-4 space-y-1">
-          <MessageGroup messages={messages} userId={userId} />
-          <div ref={messagesEndRef} />
+      {loading ? (
+        <div className="flex justify-center items-center pt-10 pb-28">
+          <LoaderCircle size={44} className="animate-spin" />
         </div>
+      ) : (
+        <div className="space-y-6">
+          {roomId && (
+            <div className="flex justify-between items-center bg-muted text-muted-foreground text-sm p-3 rounded-lg">
+              <div className="flex items-center gap-2">
+                <div>Room Code: {roomId}</div>
+                <Button
+                  className="cursor-pointer"
+                  onClick={() => copyToClipboard(roomId)}
+                  variant={"ghost"}
+                  size={"icon"}
+                >
+                  <Copy className="w-3 h-3"></Copy>
+                </Button>
+              </div>
+              <div>
+                <div>
+                  Username: <span className="text-red-500">{username}</span>
+                </div>
+                <div>
+                  Users: <span className="text-red-500">{userCount}</span>
+                </div>
+              </div>
+            </div>
+          )}
 
-        <form onSubmit={sendMessage} className="flex gap-2">
-          <Input
-            className="py-5"
-            placeholder="Type a message..."
-            ref={messageRef}
-          />
-          <Button
-            className="cursor-pointer px-8 font-semibold"
-            size={"lg"}
-            type="submit"
-          >
-            Send
-          </Button>
-        </form>
-      </div>
+          <div className="h-[430px] overflow-y-auto border rounded-lg p-4 space-y-1">
+            <MessageGroup messages={messages} userId={userId} />
+            <div ref={messagesEndRef} />
+          </div>
+
+          <form onSubmit={sendMessage} className="flex gap-2">
+            <Input
+              className="py-5"
+              placeholder="Type a message..."
+              ref={messageRef}
+            />
+            <Button
+              className="cursor-pointer px-8 font-semibold"
+              size={"lg"}
+              type="submit"
+            >
+              Send
+            </Button>
+          </form>
+        </div>
+      )}
     </CustomCard>
   );
 }
